@@ -227,8 +227,8 @@ export default function HomePage() {
           {/* Location - Prominent Display */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-2 sm:p-3">
             <div className="flex items-center justify-center space-x-2 text-primary font-semibold">
-              <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="text-sm sm:text-base">
+              <MapPin className="hidden sm:block h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs sm:text-base">
                 Line {product.line_number}, Rack {product.rack_number}
                 {/* {product.section && ` - ${product.section}`} */}
               </span>
@@ -351,7 +351,7 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <div className="flex items-center space-x-2 w-full sm:w-auto">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+              {/* <Filter className="h-4 w-4 text-muted-foreground" /> */}
               <Select
                 value={selectedCategory}
                 onValueChange={(value) => {
@@ -389,39 +389,38 @@ export default function HomePage() {
               >
                 <List className="h-4 w-4" />
               </Button>
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={handleItemsPerPageChange}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6">6</SelectItem>
+                  <SelectItem value="12">12</SelectItem>
+                  <SelectItem value="24">24</SelectItem>
+                  <SelectItem value="48">48</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                className="w-full sm:w-auto"
+                type="button"
+                disabled={loading && !searchQuery && selectedCategory === "all"}
+              >
+                Reset
+              </Button>
             </div>
 
             {/* Items per page */}
-            <Select
-              value={itemsPerPage.toString()}
-              onValueChange={handleItemsPerPageChange}
-            >
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="6">6</SelectItem>
-                <SelectItem value="12">12</SelectItem>
-                <SelectItem value="24">24</SelectItem>
-                <SelectItem value="48">48</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="w-full sm:w-auto"
-              type="button"
-              disabled={loading && !searchQuery && selectedCategory === "all"}
-            >
-              Reset
-            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Recent History Section */}
-      {!searchQuery && recentHistory.length > 0 && (
+      {/* {!searchQuery && recentHistory.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
@@ -467,15 +466,13 @@ export default function HomePage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Products Grid/List */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="text-xl sm:text-2xl font-semibold">
-            {searchQuery
-              ? `Search Results (${totalProducts})`
-              : `Products (${totalProducts})`}
+            Products ({totalProducts})
           </h2>
           <Button variant="outline" size="sm" asChild>
             <Link href="/manage">
@@ -521,7 +518,7 @@ export default function HomePage() {
           <div
             className={
               viewMode === "grid"
-                ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                ? "grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 : "space-y-3"
             }
           >
@@ -553,7 +550,7 @@ export default function HomePage() {
         ) : filteredProducts.length > 0 ? (
           <>
             {viewMode === "grid" ? (
-              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
