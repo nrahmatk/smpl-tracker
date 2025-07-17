@@ -315,7 +315,7 @@ export default function HomePage() {
   );
 
   return (
-    <div className="container mx-auto py-4 sm:py-8 space-y-6 sm:space-y-8 px-4">
+    <div className="container mx-auto py-4 sm:py-8 space-y-6 sm:space-y-8 px-4 ">
       {/* Search Section */}
       <Card>
         <CardHeader>
@@ -329,7 +329,7 @@ export default function HomePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 ">
             <div className="flex-1">
               <Input
                 placeholder="Enter product name, brand, keyword, or benefit..."
@@ -521,7 +521,7 @@ export default function HomePage() {
           <div
             className={
               viewMode === "grid"
-                ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6"
+                ? "grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                 : "space-y-3"
             }
           >
@@ -553,7 +553,7 @@ export default function HomePage() {
         ) : filteredProducts.length > 0 ? (
           <>
             {viewMode === "grid" ? (
-              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

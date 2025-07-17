@@ -137,7 +137,7 @@ export default function AddProductPage() {
       {/* Header */}
       <div className="flex items-center space-x-4 mb-8">
         <Button variant="outline" size="icon" asChild>
-          <Link href="/">
+          <Link href="/manage">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>

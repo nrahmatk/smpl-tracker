@@ -13,12 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -81,17 +76,30 @@ export default function ManagePage() {
     totalRacks: 0,
     recentlyAdded: 0,
   });
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   useEffect(() => {
     fetchProducts();
     fetchFilters();
     fetchStats();
-  }, [searchQuery, selectedCategory, selectedLine, sortField, sortOrder]);
+  }, [
+    searchQuery,
+    selectedCategory,
+    selectedLine,
+    sortField,
+    sortOrder,
+    currentPage,
+    itemsPerPage,
+  ]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      let query = supabase.from("products").select("*");
+      // Build query with pagination
+      let query = supabase.from("products").select("*", { count: "exact" });
 
       // Apply search filter
       if (searchQuery.trim()) {
@@ -113,10 +121,15 @@ export default function ManagePage() {
       // Apply sorting
       query = query.order(sortField, { ascending: sortOrder === "asc" });
 
-      const { data, error } = await query;
+      // Pagination
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      query = query.range(startIndex, startIndex + itemsPerPage - 1);
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       setProducts(data || []);
+      setTotalProducts(count || 0);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast({
@@ -219,10 +232,22 @@ export default function ManagePage() {
     setSelectedLine("all");
     setSortField("name");
     setSortOrder("asc");
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.ceil(totalProducts / itemsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value));
+    setCurrentPage(1);
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="container mx-auto py-4 sm:py-8 space-y-6 sm:space-y-8 px-4">
       {/* Header */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
@@ -367,9 +392,30 @@ export default function ManagePage() {
             </Select>
           </div>
 
-          {/* Results Count */}
-          <div className="text-sm text-muted-foreground">
-            Showing {products.length} product{products.length !== 1 ? "s" : ""}
+          {/* Results Count & Items per page */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, totalProducts)} of{" "}
+              {totalProducts} products
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">Items per page:</span>
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={handleItemsPerPageChange}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6">6</SelectItem>
+                  <SelectItem value="12">12</SelectItem>
+                  <SelectItem value="24">24</SelectItem>
+                  <SelectItem value="48">48</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -385,231 +431,265 @@ export default function ManagePage() {
           </CardContent>
         </Card>
       ) : products.length > 0 ? (
-        viewMode === "table" ? (
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">Photo</TableHead>
-                      <TableHead>
-                        <Button
-                          variant="ghost"
-                          className="h-auto p-0 font-semibold"
-                          onClick={() => handleSort("name")}
-                        >
-                          Product Name
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </TableHead>
-                      <TableHead>
-                        <Button
-                          variant="ghost"
-                          className="h-auto p-0 font-semibold"
-                          onClick={() => handleSort("brand")}
-                        >
-                          Brand
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </TableHead>
-                      <TableHead>
-                        <Button
-                          variant="ghost"
-                          className="h-auto p-0 font-semibold"
-                          onClick={() => handleSort("category")}
-                        >
-                          Category
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </TableHead>
-                      <TableHead>
-                        <Button
-                          variant="ghost"
-                          className="h-auto p-0 font-semibold"
-                          onClick={() => handleSort("line_number")}
-                        >
-                          Location
-                          <ArrowUpDown className="ml-2 h-4 w-4" />
-                        </Button>
-                      </TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <div className="w-12 h-12 relative bg-muted rounded-md overflow-hidden">
-                            {product.photo_url ? (
-                              <Image
-                                src={product.photo_url}
-                                alt={product.name}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center h-full">
-                                <Package className="h-6 w-6 text-muted-foreground" />
+        <>
+          {viewMode === "table" ? (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Photo</TableHead>
+                        <TableHead>
+                          <Button
+                            variant="ghost"
+                            className="h-auto p-0 font-semibold"
+                            onClick={() => handleSort("name")}
+                          >
+                            Product Name
+                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableHead>
+                        <TableHead>
+                          <Button
+                            variant="ghost"
+                            className="h-auto p-0 font-semibold"
+                            onClick={() => handleSort("brand")}
+                          >
+                            Brand
+                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableHead>
+                        <TableHead>
+                          <Button
+                            variant="ghost"
+                            className="h-auto p-0 font-semibold"
+                            onClick={() => handleSort("category")}
+                          >
+                            Category
+                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableHead>
+                        <TableHead>
+                          <Button
+                            variant="ghost"
+                            className="h-auto p-0 font-semibold"
+                            onClick={() => handleSort("line_number")}
+                          >
+                            Location
+                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <div className="w-12 h-12 relative bg-muted rounded-md overflow-hidden">
+                              {product.photo_url ? (
+                                <Image
+                                  src={product.photo_url}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{product.name}</div>
+                            {product.keywords && (
+                              <div className="text-sm text-muted-foreground line-clamp-1">
+                                {product.keywords}
                               </div>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{product.name}</div>
-                          {product.keywords && (
-                            <div className="text-sm text-muted-foreground line-clamp-1">
-                              {product.keywords}
+                          </TableCell>
+                          <TableCell>{product.brand || "-"}</TableCell>
+                          <TableCell>
+                            {product.category && (
+                              <Badge variant="secondary">
+                                {product.category}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1 text-sm">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                Line {product.line_number}, Rack{" "}
+                                {product.rack_number}
+                                {product.section && ` - ${product.section}`}
+                              </span>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell>{product.brand || "-"}</TableCell>
-                        <TableCell>
-                          {product.category && (
-                            <Badge variant="secondary">
-                              {product.category}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-1 text-sm">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>
-                              Line {product.line_number}, Rack{" "}
-                              {product.rack_number}
-                              {product.section && ` - ${product.section}`}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href={`/edit-product/${product.id}`}>
-                                <Edit className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete Product
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "
-                                    {product.name}"? This action cannot be
-                                    undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(product.id)}
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <Card
-                key={product.id}
-                className="group hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-4">
-                  <div className="aspect-square relative bg-muted rounded-lg mb-4 overflow-hidden">
-                    {product.photo_url ? (
-                      <Image
-                        src={product.photo_url}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <Package className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href={`/edit-product/${product.id}`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete Product
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "
+                                      {product.name}"? This action cannot be
+                                      undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(product.id)}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {products.map((product) => (
+                <Card
+                  key={product.id}
+                  className="group hover:shadow-md transition-shadow"
+                >
+                  <CardContent className="p-4">
+                    <div className="aspect-square relative bg-muted rounded-lg mb-4 overflow-hidden">
+                      {product.photo_url ? (
+                        <Image
+                          src={product.photo_url}
+                          alt={product.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <Package className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <h3 className="font-semibold line-clamp-2">
-                      {product.name}
-                    </h3>
-                    {product.brand && (
-                      <p className="text-sm text-muted-foreground">
-                        {product.brand}
-                      </p>
-                    )}
-                    {product.category && (
-                      <Badge variant="secondary" className="text-xs">
-                        {product.category}
-                      </Badge>
-                    )}
-                    <div className="flex items-center space-x-1 text-sm text-primary">
-                      <MapPin className="h-4 w-4" />
-                      <span>
-                        Line {product.line_number}, Rack {product.rack_number}
-                        {product.section && ` - ${product.section}`}
-                      </span>
+                    <div className="space-y-2">
+                      <h3 className="font-semibold line-clamp-2">
+                        {product.name}
+                      </h3>
+                      {product.brand && (
+                        <p className="text-sm text-muted-foreground">
+                          {product.brand}
+                        </p>
+                      )}
+                      {product.category && (
+                        <Badge variant="secondary" className="text-xs">
+                          {product.category}
+                        </Badge>
+                      )}
+                      <div className="flex items-center space-x-1 text-sm text-primary">
+                        <MapPin className="h-4 w-4" />
+                        <span>
+                          Line {product.line_number}, Rack {product.rack_number}
+                          {product.section && ` - ${product.section}`}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          asChild
+                        >
+                          <Link href={`/edit-product/${product.id}`}>
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Product
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{product.name}
+                                "?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(product.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2 pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        asChild
-                      >
-                        <Link href={`/edit-product/${product.id}`}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Link>
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{product.name}"?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(product.id)}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && !loading && (
+            <div className="flex items-center justify-center mt-6">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm font-medium px-4">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
